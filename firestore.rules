@@ -1,0 +1,80 @@
+/**
+ * @fileOverview Firestore Security Rules for the 'products' collection.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for product data. Each product is associated with a specific user,
+ * and only that user can create, update, or delete the product.
+ *
+ * Data Structure:
+ * Products are stored in a top-level `/products/{productId}` collection. Each product document contains a `userId`
+ * field indicating the owner.
+ *
+ * Key Security Decisions:
+ * - All authenticated users can read product data.
+ * - Only the owner (creator) of a product can modify or delete it.
+ * - The rules validate that the `userId` field in the product document matches the authenticated user's UID during creation.
+ * - All write requests must come from an authenticated user (`request.auth != null`).
+ *
+ * Denormalization for Authorization:
+ * - The `userId` field is denormalized directly onto the `Product` document to enable efficient ownership checks.
+ *
+ * Structural Segregation:
+ * - All products are stored in a single top-level collection, even though they are user-specific.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to the /products/{productId} collection.
+     * @path /databases/{database}/documents/products/{productId}
+     * @allow (get, list): Any authenticated user can read product data.
+     * @allow (create): Authenticated user can create a product if the `userId` field matches their UID.
+     * @allow (update, delete): Only the owner (creator) of the product can modify or delete it.
+     * @deny (create): Non-authenticated user tries to create a product.
+     * @deny (update, delete): Non-owner attempts to modify or delete a product.
+     * @principle Enforces document ownership for writes; allows public reads.
+     */
+    match /products/{productId} {
+      // Allow anyone to read product data.
+      allow get, list: if true;
+
+      // Only allow authenticated users to create products.
+      // Enforce that the userId matches the authenticated user's UID.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Only allow the owner of the product to update or delete it.
+      // Also, ensure that the document exists before allowing the update or delete.
+      allow update, delete: if isSignedIn() && isExistingOwner(resource.data.userId);
+
+    }
+
+    // --- Helper Functions ---
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the document.
+     * @param {string} userId The user ID to check against.
+     * @return True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the document and the document exists.
+     * @param {string} userId The user ID to check against.
+     * @return True if the user is the owner and the document exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+  }
+}

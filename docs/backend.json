@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "description": "Represents product information scanned from QR codes and stored in the database.",
+      "properties": {
+        "qrId": {
+          "type": "string",
+          "description": "The original scanned QR code ID, used for lookups."
+        },
+        "productName": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "ingredient": {
+          "type": "string",
+          "description": "List of ingredients for the product."
+        },
+        "note": {
+          "type": "string",
+          "description": "Additional notes or description about the product."
+        },
+        "manufacture_date": {
+          "type": "string",
+          "description": "The manufacturing date of the product.",
+          "format": "date"
+        },
+        "expiryDate": {
+          "type": "string",
+          "description": "The expiry date of the product.",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the product (e.g., 'in use', 'expired')."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the product."
+        }
+      },
+      "required": [
+        "productName",
+        "expiryDate",
+        "status",
+        "quantity"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Stores individual product details."
+    }
+  }
+}
+
+    
