@@ -560,10 +560,5 @@ export default function InventoryPage({ refreshKey }: { refreshKey: number }) {
     />
     </>
   );
-
+}
     
-
-
-
-    
-
